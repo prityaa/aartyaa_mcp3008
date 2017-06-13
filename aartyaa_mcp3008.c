@@ -16,7 +16,7 @@ mcp3008 ADC to spi converter driver code
 #include <linux/mod_devicetable.h>
 #include <linux/iio/iio.h>
 #include <linux/regulator/consumer.h>
-
+#include <linux/anon_inodes.h>
 
 #define MCP3008	0
 #define MCP3004	1
@@ -50,14 +50,14 @@ struct mcp3008_chip_info {
 };
 
 struct mcp3008 {
-	struct spi_device *spi;
-	struct spi_message msg;
-	struct spi_transfer transfer[2];
+	struct spi_device	*spi;
+	struct spi_message 	msg;
+	struct spi_transfer 	transfer[2];
+	struct regulator 	*reg;	
+	struct mutex 		lock;
+	u8 			tx_buf ____cacheline_aligned;
+        u8 			rx_buf[2];
 	const struct mcp3008_chip_info *chip_info;
-	struct regulator *reg;	
-	struct mutex lock;
-	u8 tx_buf ____cacheline_aligned;
-        u8 rx_buf[2];
 };
 
 static const struct iio_chan_spec mcp3201_channels[] = {
@@ -87,6 +87,69 @@ static struct mcp3008_chip_info mcp3008_chip_info = {
 	.channels = mcp3008_channels,
 	.num_channels = ARRAY_SIZE(mcp3008_channels),
 	.resolution = 10
+};
+
+static int mcp320x_channel_to_tx_data(void)
+{
+        int start_bit = 1;
+	const unsigned int channel = 0;
+	bool differential = 0;
+
+	return ((start_bit << 6) | (!differential << 5) |
+                               (channel << 2));
+}
+
+static int mcp3008_conversion(struct mcp3008 *mcp)
+{
+        int ret;
+
+        mcp->rx_buf[0] = 0;
+        mcp->rx_buf[1] = 0;
+        mcp->tx_buf = mcp320x_channel_to_tx_data();
+
+	ret = spi_sync(mcp->spi, &mcp->msg);
+	if (ret < 0)
+        	return ret;
+	
+	return (mcp->rx_buf[0] << 2 | mcp->rx_buf[1] >> 6);
+}
+
+
+static int mcp3008_aartyaa_show_data(struct device *dev,
+                        struct device_attribute *attr,
+                        char *buf)
+{
+        struct spi_device *spi_dev = to_spi_device(dev);
+        struct mcp3008 *mcp = spi_get_drvdata(spi_dev);
+        
+	int ret = -EINVAL;
+
+        mutex_lock(&mcp->lock);
+
+        // device_index = spi_get_device_id(mcp->spi)->driver_data;
+
+	ret = mcp3008_conversion(mcp);
+
+        if (ret < 0)
+       		goto out;
+
+	
+	dev_dbg(dev, "mcp3008_aartyaa_show_data : ret = %d\n", ret);
+        ret = IIO_VAL_INT;
+
+out:
+	mutex_unlock(&mcp->lock);
+
+        return ret;
+}
+
+struct device_attribute mcp3008_attr_raw_data = {
+        .attr = {
+                .name = "mcp3008_aartyaa",
+                .mode = VERIFY_OCTAL_PERMISSIONS(0664),
+        },
+        .show   = mcp3008_aartyaa_show_data,
+        .store  = NULL,
 };
 
 static struct attribute *mcp3008_attr[] = {
@@ -121,8 +184,9 @@ struct mcp3008 *mcp3008_device_alloc(struct device *dev, int sizeof_priv)
         if (!ptr)
                 return NULL;
 
-        mcp = kzmalloc(sizeof_priv, GFP_KERNEL);
+        mcp = kmalloc(sizeof_priv, GFP_KERNEL);
         if (mcp) {
+		memset(mcp, '\0', sizeof(*mcp));
                 *ptr = mcp;
                 devres_add(dev, ptr);
         } else {
@@ -149,18 +213,24 @@ static int mcp3008_probe(struct spi_device *spi)
 		return -ENOMEM;
 	}
 
+	mcp->spi->dev = spi->dev;
+	mcp->spi->dev.parent = &spi->dev;
+	mcp->spi->dev.of_node = spi->dev.of_node;
         mcp->spi = spi;
         chip_info = &mcp3008_chip_info;
         mcp->chip_info = chip_info;
+	mcp->spi->dev.driver_data = mcp;	
 
         mcp->transfer[0].tx_buf = &mcp->tx_buf;
         mcp->transfer[0].len = sizeof(mcp->tx_buf);
         mcp->transfer[1].rx_buf = mcp->rx_buf;
         mcp->transfer[1].len = sizeof(mcp->rx_buf);
-
+	
+	spi_set_drvdata(mcp->spi, mcp);
+	
         spi_message_init_with_transfers(&mcp->msg, mcp->transfer,
                                         ARRAY_SIZE(mcp->transfer));
-
+/*
 	mcp->reg = devm_regulator_get(&spi->dev, "vref");
         if (IS_ERR(mcp->reg))
                 return PTR_ERR(mcp->reg);
@@ -168,9 +238,9 @@ static int mcp3008_probe(struct spi_device *spi)
         ret = regulator_enable(mcp->reg);
         if (ret < 0)
                 return ret;
-
+*/
 	mutex_init(&mcp->lock);
-	if (sysfs_create_group(&spi->dev.kobj, &mcp3008_attr_grp)) {
+	if (sysfs_create_group(&mcp->spi->dev.kobj, &mcp3008_attr_grp)) {
  		kobject_put(&spi->dev.kobj);	
 		ret = -1;
 	}
