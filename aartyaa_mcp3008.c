@@ -182,7 +182,7 @@ struct mcp3008 *mcp3008_device_alloc(struct device *dev, int sizeof_priv)
         if (!ptr)
                 return NULL;
 
-        mcp = kmalloc(sizeof_priv, GFP_KERNEL);
+        mcp = kzalloc(sizeof_priv, GFP_KERNEL);
         if (mcp) {
 		memset(mcp, '\0', sizeof(*mcp));
                 *ptr = mcp;
