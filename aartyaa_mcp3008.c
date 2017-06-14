@@ -108,6 +108,7 @@ static int mcp3008_conversion(struct mcp3008 *mcp)
         mcp->tx_buf = mcp320x_channel_to_tx_data();
 
 	ret = spi_sync(mcp->spi, &mcp->msg);
+	dev_dbg(&mcp->spi->dev, "mcp3008_conversion : ret = %d\n", ret);
 	if (ret < 0)
         	return ret;
 	
@@ -121,20 +122,17 @@ static int mcp3008_aartyaa_show_data(struct device *dev,
 {
         struct spi_device *spi_dev = to_spi_device(dev);
         struct mcp3008 *mcp = spi_get_drvdata(spi_dev);
-        
 	int ret = -EINVAL;
+	
+	dev_dbg(dev, "mcp3008_aartyaa_show_data : \n");
 
         mutex_lock(&mcp->lock);
 
-        // device_index = spi_get_device_id(mcp->spi)->driver_data;
-
 	ret = mcp3008_conversion(mcp);
-
+	dev_dbg(dev, "mcp3008_aartyaa_show_data : ret = %x\n", ret);
         if (ret < 0)
        		goto out;
-
 	
-	dev_dbg(dev, "mcp3008_aartyaa_show_data : ret = %d\n", ret);
         ret = IIO_VAL_INT;
 
 out:
@@ -203,7 +201,8 @@ static int mcp3008_probe(struct spi_device *spi)
 	const struct mcp3008_chip_info *chip_info;
 
 	pr_debug("mcp3008_probe : aartyaa came in probe");
-	dev_dbg(&spi->dev, "aaartyaa came in probe\n");
+	dev_dbg(&spi->dev, "aaartyaa came in probe, master dev = %s\n",
+			 dev_name(&spi->master->dev));
 
 	//mcp = kmalloc(sizeof(mcp), GFP_KERNEL);
 	mcp = mcp3008_device_alloc(&spi->dev, GFP_KERNEL);
@@ -228,6 +227,7 @@ static int mcp3008_probe(struct spi_device *spi)
 	
 	spi_set_drvdata(mcp->spi, mcp);
 	
+	dev_dbg(&spi->dev, "mcp3008_probe : intiing spi msg\n");
         spi_message_init_with_transfers(&mcp->msg, mcp->transfer,
                                         ARRAY_SIZE(mcp->transfer));
 /*
@@ -240,8 +240,10 @@ static int mcp3008_probe(struct spi_device *spi)
                 return ret;
 */
 	mutex_init(&mcp->lock);
+	dev_dbg(&spi->dev, "mcp3008_probe : creating sysfs for mcp3008\n");
 	if (sysfs_create_group(&mcp->spi->dev.kobj, &mcp3008_attr_grp)) {
  		kobject_put(&spi->dev.kobj);	
+		dev_err(&spi->dev, "failed to create sysfs for mcp3008\n");
 		ret = -1;
 	}
 	

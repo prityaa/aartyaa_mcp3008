@@ -1,0 +1,45 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CFLAGS_aartyaa_lcd.o	Makefile	/^CFLAGS_aartyaa_lcd.o := -DDEBUG$/;"	m
+CROSS_COMPILE	Makefile	/^CROSS_COMPILE=arm-linux-gnueabihf-$/;"	m
+KER_DIR_4_9	Makefile	/^KER_DIR_4_9 = \/home\/prityaa\/documents\/workspace\/embeded\/raspbery_pi\/linux_source\/codebase\/source_codes\/linux_4.9$/;"	m
+MCP3004	aartyaa_mcp3008.c	22;"	d	file:
+MCP3008	aartyaa_mcp3008.c	21;"	d	file:
+MCP320X_VOLTAGE_CHANNEL	aartyaa_mcp3008.c	36;"	d	file:
+MCP320X_VOLTAGE_CHANNEL_DIFF	aartyaa_mcp3008.c	24;"	d	file:
+RPI_COMPILE_OPTION	Makefile	/^RPI_COMPILE_OPTION = ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE)$/;"	m
+____cacheline_aligned	aartyaa_mcp3008.c	/^	u8 			tx_buf ____cacheline_aligned;$/;"	m	struct:mcp3008	file:
+channels	aartyaa_mcp3008.c	/^        const struct iio_chan_spec *channels;$/;"	m	struct:mcp3008_chip_info	typeref:struct:mcp3008_chip_info::iio_chan_spec	file:
+chip_info	aartyaa_mcp3008.c	/^	const struct mcp3008_chip_info *chip_info;$/;"	m	struct:mcp3008	typeref:struct:mcp3008::mcp3008_chip_info	file:
+dev	aartyaa_mcp3008.c	/^	struct device		dev;	$/;"	m	struct:mcp3008	typeref:struct:mcp3008::device	file:
+devm_mcp3008_device_release	aartyaa_mcp3008.c	/^static void devm_mcp3008_device_release(struct device *dev, void *res)$/;"	f	file:
+lock	aartyaa_mcp3008.c	/^	struct mutex 		lock;$/;"	m	struct:mcp3008	typeref:struct:mcp3008::mutex	file:
+mcp3008	aartyaa_mcp3008.c	/^struct mcp3008 {$/;"	s	file:
+mcp3008_aartyaa_show_data	aartyaa_mcp3008.c	/^static int mcp3008_aartyaa_show_data(struct device *dev,$/;"	f	file:
+mcp3008_attr	aartyaa_mcp3008.c	/^static struct attribute *mcp3008_attr[] = {$/;"	v	typeref:struct:attribute	file:
+mcp3008_attr_grp	aartyaa_mcp3008.c	/^static struct attribute_group mcp3008_attr_grp = {$/;"	v	typeref:struct:attribute_group	file:
+mcp3008_attr_raw_data	aartyaa_mcp3008.c	/^struct device_attribute mcp3008_attr_raw_data = {$/;"	v	typeref:struct:device_attribute
+mcp3008_channels	aartyaa_mcp3008.c	/^static const struct iio_chan_spec mcp3008_channels[] = {$/;"	v	typeref:struct:iio_chan_spec	file:
+mcp3008_chip_info	aartyaa_mcp3008.c	/^static struct mcp3008_chip_info mcp3008_chip_info = {$/;"	v	typeref:struct:mcp3008_chip_info	file:
+mcp3008_chip_info	aartyaa_mcp3008.c	/^struct mcp3008_chip_info {$/;"	s	file:
+mcp3008_conversion	aartyaa_mcp3008.c	/^static int mcp3008_conversion(struct mcp3008 *mcp)$/;"	f	file:
+mcp3008_device_alloc	aartyaa_mcp3008.c	/^struct mcp3008 *mcp3008_device_alloc(struct device *dev, int sizeof_priv)$/;"	f
+mcp3008_device_free	aartyaa_mcp3008.c	/^static void mcp3008_device_free(struct mcp3008 *dev)$/;"	f	file:
+mcp3008_driver	aartyaa_mcp3008.c	/^module_spi_driver(mcp3008_driver);$/;"	v
+mcp3008_driver	aartyaa_mcp3008.c	/^static struct spi_driver mcp3008_driver = {$/;"	v	typeref:struct:spi_driver	file:
+mcp3008_ids	aartyaa_mcp3008.c	/^static const struct spi_device_id mcp3008_ids[] = {$/;"	v	typeref:struct:spi_device_id	file:
+mcp3008_of_ids	aartyaa_mcp3008.c	/^static const struct of_device_id mcp3008_of_ids[] = {$/;"	v	typeref:struct:of_device_id	file:
+mcp3008_probe	aartyaa_mcp3008.c	/^static int mcp3008_probe(struct spi_device *spi)$/;"	f	file:
+mcp3201_channels	aartyaa_mcp3008.c	/^static const struct iio_chan_spec mcp3201_channels[] = {$/;"	v	typeref:struct:iio_chan_spec	file:
+mcp320x_channel_to_tx_data	aartyaa_mcp3008.c	/^static int mcp320x_channel_to_tx_data(void)$/;"	f	file:
+msg	aartyaa_mcp3008.c	/^	struct spi_message 	msg;$/;"	m	struct:mcp3008	typeref:struct:mcp3008::spi_message	file:
+num_channels	aartyaa_mcp3008.c	/^        unsigned int num_channels;$/;"	m	struct:mcp3008_chip_info	file:
+reg	aartyaa_mcp3008.c	/^	struct regulator 	*reg;	$/;"	m	struct:mcp3008	typeref:struct:mcp3008::regulator	file:
+resolution	aartyaa_mcp3008.c	/^        unsigned int resolution;$/;"	m	struct:mcp3008_chip_info	file:
+rx_buf	aartyaa_mcp3008.c	/^        u8 			rx_buf[2];$/;"	m	struct:mcp3008	file:
+spi	aartyaa_mcp3008.c	/^	struct spi_device	*spi;$/;"	m	struct:mcp3008	typeref:struct:mcp3008::spi_device	file:
+transfer	aartyaa_mcp3008.c	/^	struct spi_transfer 	transfer[2];$/;"	m	struct:mcp3008	typeref:struct:mcp3008::spi_transfer	file:
