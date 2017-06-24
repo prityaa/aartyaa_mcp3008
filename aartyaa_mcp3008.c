@@ -3,6 +3,7 @@
 mcp3008 ADC to spi converter driver code
 */
 
+#define DEBUG
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -184,7 +185,6 @@ struct mcp3008 *mcp3008_device_alloc(struct device *dev, int sizeof_priv)
 
         mcp = kzalloc(sizeof_priv, GFP_KERNEL);
         if (mcp) {
-		memset(mcp, '\0', sizeof(*mcp));
                 *ptr = mcp;
                 devres_add(dev, ptr);
         } else {
@@ -197,21 +197,29 @@ struct mcp3008 *mcp3008_device_alloc(struct device *dev, int sizeof_priv)
 static int mcp3008_probe(struct spi_device *spi)
 {
 	int ret = 0;
-	struct mcp3008 *mcp;
+	struct mcp3008 *mcp = NULL;
 	const struct mcp3008_chip_info *chip_info;
 
-	pr_debug("mcp3008_probe : aartyaa came in probe");
+	if (spi == NULL) {
+		pr_debug("mcp3008_probe : spi is null\n");
+		return -1;
+	} else {
+		pr_debug("mcp3008_probe : spi not null can proceed\n");
+	}
+
 	dev_dbg(&spi->dev, "aaartyaa came in probe, master dev = %s\n",
 			 dev_name(&spi->master->dev));
 
-	//mcp = kmalloc(sizeof(mcp), GFP_KERNEL);
-	mcp = mcp3008_device_alloc(&spi->dev, GFP_KERNEL);
+	mcp = kmalloc(sizeof(struct mcp3008), GFP_KERNEL);
+	//mcp = mcp3008_device_alloc(&spi->dev, GFP_KERNEL);
+        //mcp = kzalloc(sizeof(*mcp), GFP_KERNEL);
 	if (!mcp) {
-		pr_debug("mcp3008_probe : falied to alloc memory\n");
 		dev_dbg(&spi->dev, "mcp3008_probe : falied to alloc memory\n");
 		return -ENOMEM;
 	}
 
+	dev_dbg(&spi->dev, "mcp3008_probe : kmalloc success\n");
+	
 	mcp->spi->dev = spi->dev;
 	mcp->spi->dev.parent = &spi->dev;
 	mcp->spi->dev.of_node = spi->dev.of_node;
@@ -220,33 +228,36 @@ static int mcp3008_probe(struct spi_device *spi)
         mcp->chip_info = chip_info;
 	mcp->spi->dev.driver_data = mcp;	
 
-        mcp->transfer[0].tx_buf = &mcp->tx_buf;
+	dev_dbg(&spi->dev, "mcp3008_probe : assigned spi data to local data\n");
+        
+	mcp->transfer[0].tx_buf = &mcp->tx_buf;
         mcp->transfer[0].len = sizeof(mcp->tx_buf);
         mcp->transfer[1].rx_buf = mcp->rx_buf;
         mcp->transfer[1].len = sizeof(mcp->rx_buf);
 	
+	dev_dbg(&spi->dev, "mcp3008_probe : trasefer buffer is ready\n");
+	
+	spi->dev.driver_data = mcp;
+	dev_dbg(&spi->dev, "mcp3008_probe : intiing spi msg\n");
+
+/* 
 	spi_set_drvdata(mcp->spi, mcp);
 	
 	dev_dbg(&spi->dev, "mcp3008_probe : intiing spi msg\n");
-        spi_message_init_with_transfers(&mcp->msg, mcp->transfer,
-                                        ARRAY_SIZE(mcp->transfer));
-/*
-	mcp->reg = devm_regulator_get(&spi->dev, "vref");
-        if (IS_ERR(mcp->reg))
-                return PTR_ERR(mcp->reg);
 
-        ret = regulator_enable(mcp->reg);
-        if (ret < 0)
-                return ret;
-*/
+       spi_message_init_with_transfers(&mcp->msg, mcp->transfer,
+                                        ARRAY_SIZE(mcp->transfer));
+
 	mutex_init(&mcp->lock);
 	dev_dbg(&spi->dev, "mcp3008_probe : creating sysfs for mcp3008\n");
+	
 	if (sysfs_create_group(&mcp->spi->dev.kobj, &mcp3008_attr_grp)) {
  		kobject_put(&spi->dev.kobj);	
 		dev_err(&spi->dev, "failed to create sysfs for mcp3008\n");
+		kfree(mcp);
 		ret = -1;
 	}
-	
+*/	
 	return ret;
 }
 
@@ -256,11 +267,6 @@ static const struct of_device_id mcp3008_of_ids[] = {
 		.data = (void *) MCP3008,
 	},
 	
-	{
-		.compatible = "aartyaa_mcp3004",
-		.data = (void *) MCP3004,
-	},
-
 	{ },
 };
 
@@ -268,7 +274,6 @@ MODULE_DEVICE_TABLE(of, mcp3008_of_ids);
 
 static const struct spi_device_id mcp3008_ids[] = {
 	{"aartyaa_mcp3008", MCP3008},
-	{"aartyaa_mcp3004", MCP3004},
 	{},
 };
 
