@@ -58,7 +58,6 @@ struct mcp3008 {
 	struct mutex 		lock;
 	u8 			tx_buf ____cacheline_aligned;
         u8 			rx_buf[2];
-	const struct mcp3008_chip_info *chip_info;
 };
 
 static const struct iio_chan_spec mcp3201_channels[] = {
@@ -179,16 +178,18 @@ struct mcp3008 *mcp3008_device_alloc(struct device *dev, int sizeof_priv)
         struct mcp3008 **ptr, *mcp;
                
         ptr = devres_alloc(devm_mcp3008_device_release, sizeof(*ptr),GFP_KERNEL); 
-	dev_dbg(dev, "mcp3008_device_alloc : allocation memory for mcp3008\n");
         if (!ptr)
                 return NULL;
 
-        mcp = kzalloc(sizeof_priv, GFP_KERNEL);
+	dev_dbg(dev, "mcp3008_device_alloc : devres is done\n");
+        mcp = kzalloc(sizeof(*mcp), GFP_KERNEL);
         if (mcp) {
                 *ptr = mcp;
                 devres_add(dev, ptr);
+		dev_dbg(dev, "mcp3008_device_alloc : dev is added to devres\n");
         } else {
                 devres_free(ptr);
+		dev_dbg(dev, "mcp3008_device_alloc : falied to allocate memory\n");
         }
         
         return mcp;
@@ -198,11 +199,10 @@ static int mcp3008_probe(struct spi_device *spi)
 {
 	int ret = 0;
 	struct mcp3008 *mcp = NULL;
-	const struct mcp3008_chip_info *chip_info;
 
 	if (spi == NULL) {
 		pr_debug("mcp3008_probe : spi is null\n");
-		return -1;
+		return -EINVAL;
 	} else {
 		pr_debug("mcp3008_probe : spi not null can proceed\n");
 	}
@@ -210,9 +210,9 @@ static int mcp3008_probe(struct spi_device *spi)
 	dev_dbg(&spi->dev, "aaartyaa came in probe, master dev = %s\n",
 			 dev_name(&spi->master->dev));
 
-	mcp = kmalloc(sizeof(struct mcp3008), GFP_KERNEL);
-	//mcp = mcp3008_device_alloc(&spi->dev, GFP_KERNEL);
+	//mcp = kmalloc(sizeof(struct mcp3008), GFP_KERNEL);
         //mcp = kzalloc(sizeof(*mcp), GFP_KERNEL);
+	mcp = mcp3008_device_alloc(&spi->dev, sizeof(*mcp));
 	if (!mcp) {
 		dev_dbg(&spi->dev, "mcp3008_probe : falied to alloc memory\n");
 		return -ENOMEM;
@@ -220,12 +220,10 @@ static int mcp3008_probe(struct spi_device *spi)
 
 	dev_dbg(&spi->dev, "mcp3008_probe : kmalloc success\n");
 	
-	mcp->spi->dev = spi->dev;
-	mcp->spi->dev.parent = &spi->dev;
-	mcp->spi->dev.of_node = spi->dev.of_node;
+	//mcp->spi->dev = spi->dev;
+	//mcp->spi->dev.parent = &spi->dev;
+	//mcp->spi->dev.of_node = spi->dev.of_node;
         mcp->spi = spi;
-        chip_info = &mcp3008_chip_info;
-        mcp->chip_info = chip_info;
 	mcp->spi->dev.driver_data = mcp;	
 
 	dev_dbg(&spi->dev, "mcp3008_probe : assigned spi data to local data\n");
@@ -237,17 +235,15 @@ static int mcp3008_probe(struct spi_device *spi)
 	
 	dev_dbg(&spi->dev, "mcp3008_probe : trasefer buffer is ready\n");
 	
-	spi->dev.driver_data = mcp;
+	spi->dev.driver_data = (struct mcp3008 *)mcp;
 	dev_dbg(&spi->dev, "mcp3008_probe : intiing spi msg\n");
 
-/* 
-	spi_set_drvdata(mcp->spi, mcp);
+//	spi_set_drvdata(mcp->spi, mcp);
 	
 	dev_dbg(&spi->dev, "mcp3008_probe : intiing spi msg\n");
 
-       spi_message_init_with_transfers(&mcp->msg, mcp->transfer,
+	spi_message_init_with_transfers(&mcp->msg, mcp->transfer,
                                         ARRAY_SIZE(mcp->transfer));
-
 	mutex_init(&mcp->lock);
 	dev_dbg(&spi->dev, "mcp3008_probe : creating sysfs for mcp3008\n");
 	
@@ -257,7 +253,7 @@ static int mcp3008_probe(struct spi_device *spi)
 		kfree(mcp);
 		ret = -1;
 	}
-*/	
+	
 	return ret;
 }
 
