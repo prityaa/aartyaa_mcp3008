@@ -1,0 +1,26 @@
+
+# name aartyaa mcp3008 chip driver
+==========================================================================
+
+# date 26 jun 2017
+
+H/Ws :
+==========================================================================
+	1 . HDMI serial cable
+	2 . LAN 
+	3 . micro USB.
+	4 . bread board, TMP36, mcp3008.
+	
+Requirements : 
+==========================================================================
+
+	1 . connections are connected as 
+		http://www.raspberrypi-spy.co.uk/2013/10/analogue-sensors-on-the-raspberry-pi-using-an-mcp3008/
+
+	2 . kernel 4.9 and 
+	3 . code  uploaded in driver as aartyaa_spi_mcp3008.
+
+Refference : 
+==========================================================================
+	1 . spi core dreiver
+	2 . mcp32x.c in iio/adc/
