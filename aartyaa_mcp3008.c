@@ -73,7 +73,6 @@ static int mcp3008_aartyaa_show_data(struct device *dev,
 		goto dev_error;
 	}
 
-	
 	if (mcp == NULL) {
 		dev_err(dev, "mcp3008_aartyaa_show_data : mcp is null\n");	
 		ret = -2;	
@@ -93,7 +92,7 @@ out:
 
 dev_error:
 	memset(buf, '\0', sizeof(buf));
-        return sprintf(buf, "%f\n", ret/10.0);
+        return sprintf(buf, "%d\n", ret);
 }
 
 struct device_attribute mcp3008_attr_raw_data = {
