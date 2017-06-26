@@ -20,76 +20,17 @@ mcp3008 ADC to spi converter driver code
 #include <linux/anon_inodes.h>
 
 #define MCP3008	0
-#define MCP3004	1
-
-#define MCP320X_VOLTAGE_CHANNEL_DIFF(chan1, chan2)              \
-        {                                                       \
-                .type = IIO_VOLTAGE,                            \
-                .indexed = 1,                                   \
-                .channel = (chan1),                             \
-                .channel2 = (chan2),                            \
-                .address = (chan1),                             \
-                .differential = 1,                              \
-                .info_mask_separate = BIT(IIO_CHAN_INFO_RAW),   \
-                .info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE) \
-        }
-
-#define MCP320X_VOLTAGE_CHANNEL(num)                            \
-        {                                                       \
-                .type = IIO_VOLTAGE,                            \
-                .indexed = 1,                                   \
-                .channel = (num),                               \
-                .address = (num),                               \
-                .info_mask_separate = BIT(IIO_CHAN_INFO_RAW),   \
-                .info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE) \
-        }
-
-struct mcp3008_chip_info {
-        const struct iio_chan_spec *channels;
-        unsigned int num_channels;
-        unsigned int resolution;
-};
 
 struct mcp3008 {
 	struct spi_device	*spi;
 	struct spi_message 	msg;
 	struct spi_transfer 	transfer[2];
-	struct regulator 	*reg;	
 	struct mutex 		lock;
 	u8 			tx_buf ____cacheline_aligned;
         u8 			rx_buf[2];
 };
 
-static const struct iio_chan_spec mcp3201_channels[] = {
-        MCP320X_VOLTAGE_CHANNEL_DIFF(0, 1),
-};
-
-
-static const struct iio_chan_spec mcp3008_channels[] = {
-        MCP320X_VOLTAGE_CHANNEL(0),
-        MCP320X_VOLTAGE_CHANNEL(1),
-        MCP320X_VOLTAGE_CHANNEL(2),
-        MCP320X_VOLTAGE_CHANNEL(3),
-        MCP320X_VOLTAGE_CHANNEL(4),
-        MCP320X_VOLTAGE_CHANNEL(5),
-        MCP320X_VOLTAGE_CHANNEL(6),
-        MCP320X_VOLTAGE_CHANNEL(7),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(0, 1),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(1, 0),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(2, 3),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(3, 2),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(4, 5),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(5, 4),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(6, 7),
-        MCP320X_VOLTAGE_CHANNEL_DIFF(7, 6),
-};
-static struct mcp3008_chip_info mcp3008_chip_info = {
-	.channels = mcp3008_channels,
-	.num_channels = ARRAY_SIZE(mcp3008_channels),
-	.resolution = 10
-};
-
-static int mcp320x_channel_to_tx_data(void)
+static int mcp3008_channel_to_tx_data(void)
 {
         int start_bit = 1;
 	const unsigned int channel = 0;
@@ -105,13 +46,15 @@ static int mcp3008_conversion(struct mcp3008 *mcp)
 
         mcp->rx_buf[0] = 0;
         mcp->rx_buf[1] = 0;
-        mcp->tx_buf = mcp320x_channel_to_tx_data();
+        mcp->tx_buf = mcp3008_channel_to_tx_data();
 
 	ret = spi_sync(mcp->spi, &mcp->msg);
 	dev_dbg(&mcp->spi->dev, "mcp3008_conversion : ret = %d\n", ret);
 	if (ret < 0)
         	return ret;
 	
+	dev_dbg(&mcp->spi->dev, "mcp3008_conversion :  rx_buf[0] %x, rx_buf[1] = %x\n", 
+		mcp->rx_buf[0], mcp->rx_buf[1]);
 	return (mcp->rx_buf[0] << 2 | mcp->rx_buf[1] >> 6);
 }
 
@@ -124,26 +67,38 @@ static int mcp3008_aartyaa_show_data(struct device *dev,
         struct mcp3008 *mcp = spi_get_drvdata(spi_dev);
 	int ret = -EINVAL;
 	
-	dev_dbg(dev, "mcp3008_aartyaa_show_data : \n");
+	if (spi_dev == NULL) {
+		dev_err(dev, "mcp3008_aartyaa_show_data : spi_dev is null\n");	
+		ret = -1;	
+		goto dev_error;
+	}
+
+	
+	if (mcp == NULL) {
+		dev_err(dev, "mcp3008_aartyaa_show_data : mcp is null\n");	
+		ret = -2;	
+		goto dev_error;
+	}
+
+	dev_dbg(dev, "mcp3008_aartyaa_show_data\n");
 
         mutex_lock(&mcp->lock);
 
-	ret = mcp3008_conversion(mcp);
+	ret = mcp3008_conversion(mcp) & 0xff;
 	dev_dbg(dev, "mcp3008_aartyaa_show_data : ret = %x\n", ret);
         if (ret < 0)
        		goto out;
-	
-        ret = IIO_VAL_INT;
-
 out:
 	mutex_unlock(&mcp->lock);
 
-        return ret;
+dev_error:
+	memset(buf, '\0', sizeof(buf));
+        return sprintf(buf, "%f\n", ret/10.0);
 }
 
 struct device_attribute mcp3008_attr_raw_data = {
         .attr = {
-                .name = "mcp3008_aartyaa",
+                .name = "aartyaa_mcp3008",
                 .mode = VERIFY_OCTAL_PERMISSIONS(0664),
         },
         .show   = mcp3008_aartyaa_show_data,
@@ -181,7 +136,7 @@ struct mcp3008 *mcp3008_device_alloc(struct device *dev, int sizeof_priv)
         if (!ptr)
                 return NULL;
 
-	dev_dbg(dev, "mcp3008_device_alloc : devres is done\n");
+	dev_dbg(dev, "mcp3008_device_alloc : devres is allocated\n");
         mcp = kzalloc(sizeof(*mcp), GFP_KERNEL);
         if (mcp) {
                 *ptr = mcp;
@@ -203,8 +158,6 @@ static int mcp3008_probe(struct spi_device *spi)
 	if (spi == NULL) {
 		pr_debug("mcp3008_probe : spi is null\n");
 		return -EINVAL;
-	} else {
-		pr_debug("mcp3008_probe : spi not null can proceed\n");
 	}
 
 	dev_dbg(&spi->dev, "aaartyaa came in probe, master dev = %s\n",
@@ -218,7 +171,7 @@ static int mcp3008_probe(struct spi_device *spi)
 		return -ENOMEM;
 	}
 
-	dev_dbg(&spi->dev, "mcp3008_probe : kmalloc success\n");
+	//dev_dbg(&spi->dev, "mcp3008_probe : kmalloc success\n");
 	
 	//mcp->spi->dev = spi->dev;
 	//mcp->spi->dev.parent = &spi->dev;
@@ -226,22 +179,18 @@ static int mcp3008_probe(struct spi_device *spi)
         mcp->spi = spi;
 	mcp->spi->dev.driver_data = mcp;	
 
-	dev_dbg(&spi->dev, "mcp3008_probe : assigned spi data to local data\n");
-        
+	//dev_dbg(&spi->dev, "mcp3008_probe : assigned spi data to local data\n");
 	mcp->transfer[0].tx_buf = &mcp->tx_buf;
         mcp->transfer[0].len = sizeof(mcp->tx_buf);
         mcp->transfer[1].rx_buf = mcp->rx_buf;
         mcp->transfer[1].len = sizeof(mcp->rx_buf);
 	
 	dev_dbg(&spi->dev, "mcp3008_probe : trasefer buffer is ready\n");
-	
 	spi->dev.driver_data = (struct mcp3008 *)mcp;
-	dev_dbg(&spi->dev, "mcp3008_probe : intiing spi msg\n");
 
-//	spi_set_drvdata(mcp->spi, mcp);
+	//spi_set_drvdata(mcp->spi, mcp);
 	
-	dev_dbg(&spi->dev, "mcp3008_probe : intiing spi msg\n");
-
+	dev_dbg(&spi->dev, "mcp3008_probe : initing spi msg\n");
 	spi_message_init_with_transfers(&mcp->msg, mcp->transfer,
                                         ARRAY_SIZE(mcp->transfer));
 	mutex_init(&mcp->lock);
