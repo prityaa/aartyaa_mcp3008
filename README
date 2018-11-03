@@ -7,20 +7,60 @@
 H/Ws :
 ==========================================================================
 	1 . HDMI serial cable
-	2 . LAN 
+	2 . LAN
 	3 . micro USB.
 	4 . bread board, TMP36, mcp3008.
-	
-Requirements : 
+
+Requirements :
 ==========================================================================
 
-	1 . connections are connected as 
+	1 . connections are connected as
 		http://www.raspberrypi-spy.co.uk/2013/10/analogue-sensors-on-the-raspberry-pi-using-an-mcp3008/
 
-	2 . kernel 4.9 and 
+	2 . kernel 4.9 and
 	3 . code  uploaded in driver as aartyaa_spi_mcp3008.
 
-Refference : 
+Refference :
 ==========================================================================
 	1 . spi core dreiver
 	2 . mcp32x.c in iio/adc/
+
+
+spi_sync	- to read data
+	__spi_sync	- drivers/spi/spi.c
+		__spi_queued_transfer	- drivers/spi/spi.c
+			kthread_queue_work(&ctlr->kworker, &ctlr->pump_messages);  - drivers/spi/spi.c
+			adds this message to worker queue which will be scheduled by worker callback fun
+			i.e. spi_pump_messages
+
+spi_init_queue	- drivers/spi/spi.c
+	kthread_init_work(&ctlr->pump_messages, spi_pump_messages);
+
+------------------------------------------
+worker thread fun callback
+--------------------------------------------
+spi_pump_messages	-drivers/spi/spi.c
+	__spi_pump_messages
+		ctlr->prepare_transfer_hardware
+		ctlr->prepare_message
+		ctlr->transfer_one_message
+
+		cond_resched(); => Prod the scheduler in case transfer_one() was busy waitin
+
+If soc is bcm2835 raspberry pi
+-------------------------------------------------
+bcm2835_spi_probe
+	master->prepare_message = bcm2835_spi_prepare_message;
+	bcm2835_spi_prepare_message
+	=> it selects mode CPOL and CPHA
+
+spi_register_controller	drivers/spi/spi.c
+	spi_controller_initialize_queue
+		ctlr->transfer_one_message = spi_transfer_one_message;
+		spi_transfer_one_message	- drivers/spi/spi.c
+			ctlr->transfer_one	- drivers/spi/spi.c
+
+
+				master->transfer_one = bcm2835_spi_transfer_one;
+				bcm2835_spi_transfer_one - drivers/spi/spi-bcm2835.c
+				=> low level regiister ops to read and write
